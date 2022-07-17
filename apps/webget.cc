@@ -8,10 +8,36 @@ using namespace std;
 
 void get_URL(const string &host, const string &path) {
     // Your code here.
+    TCPSocket sock;
+    sock.connect(Address(host, "http"));
+
+    string buffer;
+    buffer = "GET " + path + " HTTP/1.1\r\nHost: " + host + "\r\nConnection: close\r\n\r\n";
+    sock.write(buffer);
 
     // You will need to connect to the "http" service on
     // the computer whose name is in the "host" string,
     // then request the URL path given in the "path" string.
+    string temp;
+
+    while (true) {
+        buffer = sock.read();
+
+        if (buffer.size() <= 0)
+            return;
+
+        for (char c : buffer) {
+            if (c == EOF || c == '\0') {
+                cout << temp << endl;
+                return;
+            } else if (c == '\n') {
+                cout << temp << endl;
+                temp = "";
+            } else {
+                temp += c;
+            }
+        }
+    }
 
     // Then you'll need to print out everything the server sends back,
     // (not just one call to read() -- everything) until you reach
