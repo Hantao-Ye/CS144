@@ -14,7 +14,7 @@ class StreamReassembler {
   private:
     std::deque<char> _buffer{};
     std::deque<std::string> _assembled_buffer{};
-    std::unordered_map<size_t, bool> _buffer_received{};
+    std::deque<bool> _buffer_received{};
     size_t _start_index{};
     size_t _end_index{};
     size_t _eof_index{SIZE_MAX};

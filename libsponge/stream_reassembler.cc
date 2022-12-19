@@ -14,6 +14,7 @@ using namespace std;
 
 StreamReassembler::StreamReassembler(const size_t capacity) : _output(capacity), _capacity(capacity) {
     _buffer.resize(capacity, '\0');
+    _buffer_received.resize(capacity, false);
     _end_index = _capacity;
 }
 
@@ -27,10 +28,11 @@ void StreamReassembler::push_substring(const string &data, const size_t index, c
 
     if (_end_index - _start_index < _capacity && _output.buffer_empty()) {
         _buffer.resize(_capacity, '\0');
+        _buffer_received.resize(_capacity, false);
         _end_index = _start_index + _capacity;
-    } 
+    }
 
-    while(_output.remaining_capacity() > 0 && !_assembled_buffer.empty()) {
+    while (_output.remaining_capacity() > 0 && !_assembled_buffer.empty()) {
         size_t write_into_output = _output.write(_assembled_buffer.front());
         if (write_into_output < _assembled_buffer.front().size()) {
             _assembled_buffer.begin()->erase(0, write_into_output);
@@ -38,7 +40,7 @@ void StreamReassembler::push_substring(const string &data, const size_t index, c
             _assembled_buffer.pop_front();
         }
     }
-    
+
     if (data.length() + index < _start_index || index >= min(_eof_index, _end_index)) {
         if (_start_index == _eof_index) {
             _output.end_input();
@@ -49,18 +51,20 @@ void StreamReassembler::push_substring(const string &data, const size_t index, c
     size_t str_start_index = index < _start_index ? _start_index - index : 0;
 
     for (size_t i = str_start_index; i < min(min(_end_index, _eof_index) - index, data.length()); i++) {
-        if (_buffer_received[i + index] == false) {
+        if (_buffer_received[i + index - _start_index] == false) {
             _buffer[i + index - _start_index] = data[i];
-            _buffer_received[i + index] = true;
+            _buffer_received[i + index - _start_index] = true;
             _unassembled_bytes++;
         }
     }
 
     string assembled_str = "";
-    while (_buffer_received[_start_index] == true && _start_index < min(_end_index, _eof_index)) {
+    while (_buffer_received[0] == true && _start_index < min(_end_index, _eof_index)) {
         assembled_str.push_back(_buffer[0]);
 
         _buffer.pop_front();
+        _buffer_received.pop_front();
+
         _start_index++;
         _unassembled_bytes--;
     }
@@ -73,10 +77,7 @@ void StreamReassembler::push_substring(const string &data, const size_t index, c
 
     if (_start_index == _eof_index) {
         _output.end_input();
-    } else if (_end_index - _start_index < _capacity && _output.buffer_empty()) {
-        _buffer.resize(_capacity, '\0');
-        _end_index = _start_index + _capacity;
-    } 
+    }
 }
 
 size_t StreamReassembler::unassembled_bytes() const { return _unassembled_bytes; }
