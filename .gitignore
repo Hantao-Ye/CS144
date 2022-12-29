@@ -73,4 +73,7 @@ _deps
 .history
 .ionide
 
+CMakeDoxyfile.in
+CMakeDoxygenDefaults.cmake
+
 # End of https://www.toptal.com/developers/gitignore/api/cmake,c++,visualstudiocode
