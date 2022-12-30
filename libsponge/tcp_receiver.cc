@@ -11,19 +11,19 @@ void DUMMY_CODE(Targs &&.../* unused */) {}
 using namespace std;
 
 void TCPReceiver::segment_received(const TCPSegment &seg) {
-    if (seg.header().syn && !_isn.has_value()) {
-        _isn = seg.header().seqno;
-    } else if ((seg.header().syn ^ _isn.has_value()) == false) {
+    const TCPHeader &header = seg.header();
+
+    if (header.syn && !_isn.has_value()) {
+        _isn = header.seqno;
+    } else if ((header.syn ^ _isn.has_value()) == false) {
         return;
     }
 
-    if (seg.header().seqno == _isn.value() && !seg.header().syn) {
-        return;
-    }
+    uint64_t abs_ackno = _reassembler.stream_out().bytes_written() + 1;
+    uint64_t curr_abs_seqno = unwrap(header.seqno, _isn.value(), abs_ackno);
     
-    uint64_t index = seg.header().seqno == _isn.value() ? 0 : unwrap(seg.header().seqno, _isn.value() + 1, 0);
-    bool eof = seg.header().fin;
-    _reassembler.push_substring(seg.payload().copy(), index, eof);
+    uint64_t index = curr_abs_seqno - 1 + (header.syn);
+    _reassembler.push_substring(seg.payload().copy(), index, header.fin);
 
     _ackno = wrap(_reassembler.stream_out().bytes_written() + 1, _isn.value());
     if (_reassembler.stream_out().input_ended()) {
