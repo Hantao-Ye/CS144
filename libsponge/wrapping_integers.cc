@@ -31,32 +31,15 @@ WrappingInt32 wrap(uint64_t n, WrappingInt32 isn) {
 //! has a different ISN.
 uint64_t unwrap(WrappingInt32 n, WrappingInt32 isn, uint64_t checkpoint) {
     uint64_t n_abs = static_cast<uint64_t>(n.raw_value() - isn.raw_value());
+    const constexpr uint64_t INT32_RANGE = 1L << 32;
     if (n_abs == checkpoint)
         return n_abs;
 
-    uint64_t left = 0;
-    uint64_t right = UINT32_MAX;
-    while (left <= right) {
-        uint64_t mid = left + (right - left) / 2;
-        uint64_t temp_n_abs = n_abs + mid * (1UL << 32);
-
-        if (temp_n_abs == checkpoint) {
-            return temp_n_abs;
-        } else if (temp_n_abs < checkpoint) {
-            if (mid == UINT32_MAX) {
-                return n_abs + UINT32_MAX * (1UL << 32);
-            }
-            left = mid + 1;
-        } else {
-            if (mid == 0) {
-                return n_abs;
-            }
-            right = mid - 1;
-        }
+    if(checkpoint > n_abs) {
+        uint64_t real_checkpoint = (checkpoint - n_abs) + (INT32_RANGE >> 1);
+        uint64_t wrap_num = real_checkpoint / INT32_RANGE;
+        return wrap_num * INT32_RANGE + n_abs;
     }
-
-    return max(n_abs + left * (1UL << 32), checkpoint) - min(n_abs + left * (1UL << 32), checkpoint) <
-                   max(n_abs + right * (1UL << 32), checkpoint) - min(n_abs + right * (1UL << 32), checkpoint)
-               ? n_abs + left * (1UL << 32)
-               : n_abs + right * (1UL << 32);
+    else
+       return n_abs;
 }
